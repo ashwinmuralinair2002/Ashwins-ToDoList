@@ -1,122 +1,139 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import type { Todo } from './types';
+import Header from './components/Header';
+import AddTask from './components/AddTask';
+import TodoList from './components/TodoList';
+
+// Helper function to get today's local date in YYYY-MM-DD format using local time (e.g. IST)
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+
+  // 1. useEffect for loading saved todos from LocalStorage when the app starts
+  useEffect(() => {
+    const savedTodos = localStorage.getItem('todos');
+    if (savedTodos) {
+      try {
+        const parsedTodos: Todo[] = JSON.parse(savedTodos);
+        if (Array.isArray(parsedTodos)) {
+          setTodos(parsedTodos);
+        }
+      } catch (error) {
+        console.error('Failed to parse saved todos from LocalStorage:', error);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // 2. useEffect for saving todos to LocalStorage whenever the todo state changes
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }, [todos, isLoaded]);
+
+  // Calculate overdue tasks count (unfinished tasks with deadline before today)
+  const todayStr = getTodayDateString();
+  const overdueCount = todos.filter(
+    (todo) => !todo.completed && todo.deadline && todo.deadline < todayStr
+  ).length;
+
+  // Handle opening the form for adding a new task
+  const handleOpenAddForm = () => {
+    setEditingTodo(null);
+    setIsFormOpen(true);
+  };
+
+  // Handle closing the form
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingTodo(null);
+  };
+
+  // Add a new todo item to state
+  const handleAddTodo = (newTodoData: { title: string; description: string; deadline: string }) => {
+    const newTodo: Todo = {
+      id: Date.now(),
+      title: newTodoData.title,
+      description: newTodoData.description,
+      deadline: newTodoData.deadline,
+      completed: false,
+    };
+    setTodos([...todos, newTodo]);
+    setIsFormOpen(false);
+  };
+
+  // Delete a todo item from state
+  const handleDeleteTodo = (id: number) => {
+    const updatedTodos = todos.filter((todo) => todo.id !== id);
+    setTodos(updatedTodos);
+  };
+
+  // Toggle completed status of a todo item
+  const handleToggleComplete = (id: number) => {
+    const updatedTodos = todos.map((todo) =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    );
+    setTodos(updatedTodos);
+  };
+
+  // Handle opening the form to edit an existing task
+  const handleEditClick = (todo: Todo) => {
+    setEditingTodo(todo);
+    setIsFormOpen(true);
+  };
+
+  // Update an existing todo item in state
+  const handleUpdateTodo = (updatedTodo: Todo) => {
+    const updatedTodos = todos.map((todo) =>
+      todo.id === updatedTodo.id ? updatedTodo : todo
+    );
+    setTodos(updatedTodos);
+    setEditingTodo(null);
+    setIsFormOpen(false);
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="container-fluid py-4 px-3 px-md-5">
+      <div className="mx-auto" style={{ maxWidth: '900px' }}>
+        <Header />
 
-      <div className="ticks"></div>
+        {/* Overdue Tasks Notification Banner */}
+        {overdueCount > 0 && (
+          <div className="alert alert-warning text-center fw-bold shadow-sm mb-4" role="alert">
+            ⚠️ You have {overdueCount} overdue task{overdueCount > 1 ? 's' : ''}.
+          </div>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <AddTask
+          key={editingTodo ? editingTodo.id : isFormOpen ? 'open-add' : 'closed'}
+          isOpen={isFormOpen}
+          editingTodo={editingTodo}
+          onOpenForm={handleOpenAddForm}
+          onCloseForm={handleCloseForm}
+          onAddTodo={handleAddTodo}
+          onUpdateTodo={handleUpdateTodo}
+        />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <TodoList
+          todos={todos}
+          onToggleComplete={handleToggleComplete}
+          onDelete={handleDeleteTodo}
+          onEdit={handleEditClick}
+        />
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
