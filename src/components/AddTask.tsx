@@ -8,6 +8,7 @@ type AddTaskProps = {
   onCloseForm: () => void;
   onAddTodo: (newTodo: { title: string; description: string; deadline: string }) => void;
   onUpdateTodo: (updatedTodo: Todo) => void;
+  onShowToast?: (message: string, type?: 'warning' | 'danger' | 'info' | 'success') => void;
 };
 
 // Helper function to dynamically calculate today's date in YYYY-MM-DD format
@@ -26,6 +27,7 @@ function AddTask({
   onCloseForm,
   onAddTodo,
   onUpdateTodo,
+  onShowToast,
 }: AddTaskProps) {
   const [title, setTitle] = useState(editingTodo ? editingTodo.title : '');
   const [description, setDescription] = useState(editingTodo ? editingTodo.description : '');
@@ -38,13 +40,21 @@ function AddTask({
 
     // JavaScript validation: Title, Description, and Deadline are required
     if (!title.trim() || !description.trim() || !deadline.trim()) {
-      alert('Please fill out all required fields: Title, Description, and Deadline.');
+      if (onShowToast) {
+        onShowToast('Please fill out all required fields: Title, Description, and Deadline.', 'warning');
+      } else {
+        alert('Please fill out all required fields: Title, Description, and Deadline.');
+      }
       return;
     }
 
     // Validation check: Deadline cannot be in the past
     if (deadline < todayString) {
-      alert('Deadline cannot be before today.');
+      if (onShowToast) {
+        onShowToast('Deadline cannot be before today.', 'warning');
+      } else {
+        alert('Deadline cannot be before today.');
+      }
       return;
     }
 

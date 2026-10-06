@@ -13,11 +13,32 @@ const getTodayDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
+type ToastState = {
+  id: number;
+  message: string;
+  type: 'success' | 'danger' | 'info' | 'warning';
+} | null;
+
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [toast, setToast] = useState<ToastState>(null);
+
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const showToast = (message: string, type: 'success' | 'danger' | 'info' | 'warning' = 'success') => {
+    setToast({ id: Date.now(), message, type });
+  };
 
   // 1. useEffect for loading saved todos from LocalStorage when the app starts
   useEffect(() => {
@@ -71,20 +92,32 @@ function App() {
     };
     setTodos([...todos, newTodo]);
     setIsFormOpen(false);
+    showToast('Task added successfully!', 'success');
   };
 
   // Delete a todo item from state
   const handleDeleteTodo = (id: number) => {
     const updatedTodos = todos.filter((todo) => todo.id !== id);
     setTodos(updatedTodos);
+    showToast('Task deleted successfully!', 'danger');
   };
 
   // Toggle completed status of a todo item
   const handleToggleComplete = (id: number) => {
-    const updatedTodos = todos.map((todo) =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
+    let isNowCompleted = false;
+    const updatedTodos = todos.map((todo) => {
+      if (todo.id === id) {
+        isNowCompleted = !todo.completed;
+        return { ...todo, completed: !todo.completed };
+      }
+      return todo;
+    });
     setTodos(updatedTodos);
+    if (isNowCompleted) {
+      showToast('Task completed!', 'success');
+    } else {
+      showToast('Task marked incomplete.', 'info');
+    }
   };
 
   // Handle opening the form to edit an existing task
@@ -101,10 +134,37 @@ function App() {
     setTodos(updatedTodos);
     setEditingTodo(null);
     setIsFormOpen(false);
+    showToast('Task updated successfully!', 'success');
   };
 
   return (
     <div className="container-fluid py-4 px-3 px-md-5">
+      {/* Toast Notification Container */}
+      {toast && (
+        <div className="toast-container position-fixed top-0 end-0 p-3" style={{ zIndex: 1080 }}>
+          <div
+            className={`toast show align-items-center ${
+              toast.type === 'warning' ? 'bg-warning text-dark' : `bg-${toast.type} text-white`
+            } border-0 shadow-lg`}
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+          >
+            <div className="d-flex">
+              <div className="toast-body fs-6 fw-semibold">
+                {toast.message}
+              </div>
+              <button
+                type="button"
+                className={toast.type === 'warning' ? 'btn-close me-2 m-auto' : 'btn-close btn-close-white me-2 m-auto'}
+                aria-label="Close"
+                onClick={() => setToast(null)}
+              ></button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto" style={{ maxWidth: '900px' }}>
         <Header />
 
@@ -123,10 +183,12 @@ function App() {
           onCloseForm={handleCloseForm}
           onAddTodo={handleAddTodo}
           onUpdateTodo={handleUpdateTodo}
+          onShowToast={showToast}
         />
 
         <TodoList
           todos={todos}
+          todayStr={todayStr}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTodo}
           onEdit={handleEditClick}

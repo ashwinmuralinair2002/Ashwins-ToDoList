@@ -3,13 +3,26 @@ import type { Todo } from '../types';
 
 type TodoItemProps = {
   todo: Todo;
+  todayStr?: string;
   onToggleComplete: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (todo: Todo) => void;
 };
 
-function TodoItem({ todo, onToggleComplete, onDelete, onEdit }: TodoItemProps) {
+// Helper function to dynamically calculate today's date in YYYY-MM-DD format if todayStr is omitted
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+function TodoItem({ todo, todayStr, onToggleComplete, onDelete, onEdit }: TodoItemProps) {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  const currentTodayStr = todayStr || getTodayDateString();
+  const isDueToday = todo.deadline === currentTodayStr;
 
   // Helper to format date string (YYYY-MM-DD) into readable format like "October 6, 2026"
   const formatDeadline = (dateStr: string) => {
@@ -26,9 +39,14 @@ function TodoItem({ todo, onToggleComplete, onDelete, onEdit }: TodoItemProps) {
     return dateStr;
   };
 
+  const containerBgClass = isDueToday ? 'bg-warning text-dark' : 'bg-success text-white';
+  const titleTextClass = isDueToday
+    ? (todo.completed ? 'text-decoration-line-through text-dark opacity-50' : 'text-dark')
+    : (todo.completed ? 'text-decoration-line-through text-white-50' : 'text-white');
+
   return (
     <div
-      className={`mb-3 rounded bg-success text-white shadow-sm overflow-hidden ${
+      className={`mb-3 rounded ${containerBgClass} shadow-sm overflow-hidden ${
         todo.completed ? 'opacity-75' : ''
       }`}
     >
@@ -50,13 +68,14 @@ function TodoItem({ todo, onToggleComplete, onDelete, onEdit }: TodoItemProps) {
             }}
             onClick={(e) => e.stopPropagation()}
           />
-          <span
-            className={`fw-semibold fs-5 ${
-              todo.completed ? 'text-decoration-line-through text-white-50' : ''
-            }`}
-          >
+          <span className={`fw-semibold fs-5 ${titleTextClass}`}>
             {todo.title}
           </span>
+          {isDueToday && (
+            <span className="badge bg-dark text-warning ms-1" style={{ fontSize: '0.75rem' }}>
+              Due Today
+            </span>
+          )}
           <small className="ms-2 opacity-75" style={{ fontSize: '0.8rem' }}>
             {isExpanded ? '▲' : '▼'}
           </small>
@@ -64,7 +83,7 @@ function TodoItem({ todo, onToggleComplete, onDelete, onEdit }: TodoItemProps) {
 
         <div className="d-flex gap-2">
           <button
-            className="btn btn-warning btn-sm px-3 fw-bold"
+            className="btn btn-warning btn-sm px-3 fw-bold border border-secondary border-opacity-25"
             title="Edit"
             onClick={(e) => {
               e.stopPropagation();
@@ -88,7 +107,13 @@ function TodoItem({ todo, onToggleComplete, onDelete, onEdit }: TodoItemProps) {
 
       {/* Expanded Details Section */}
       {isExpanded && (
-        <div className="px-3 pb-3 pt-1 border-top border-light border-opacity-25 bg-black bg-opacity-10 text-white text-start">
+        <div
+          className={`px-3 pb-3 pt-1 border-top text-start ${
+            isDueToday
+              ? 'border-dark border-opacity-25 bg-dark bg-opacity-10 text-dark'
+              : 'border-light border-opacity-25 bg-black bg-opacity-10 text-white'
+          }`}
+        >
           <div className="mb-2">
             <strong>Description:</strong>
             <p className="mb-0 mt-1" style={{ whiteSpace: 'pre-wrap' }}>

@@ -3,12 +3,13 @@ import TodoItem from './TodoItem';
 
 type TodoListProps = {
   todos: Todo[];
+  todayStr?: string;
   onToggleComplete: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (todo: Todo) => void;
 };
 
-function TodoList({ todos, onToggleComplete, onDelete, onEdit }: TodoListProps) {
+function TodoList({ todos, todayStr, onToggleComplete, onDelete, onEdit }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div className="text-center text-secondary fs-5 my-5 p-4 bg-white rounded shadow-sm">
@@ -23,6 +24,7 @@ function TodoList({ todos, onToggleComplete, onDelete, onEdit }: TodoListProps) 
         <TodoItem
           key={todo.id}
           todo={todo}
+          todayStr={todayStr}
           onToggleComplete={onToggleComplete}
           onDelete={onDelete}
           onEdit={onEdit}
