@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 import type { Todo } from '../types';
 
 type TodoItemProps = {
@@ -97,7 +98,20 @@ function TodoItem({ todo, todayStr, onToggleComplete, onDelete, onEdit }: TodoIt
             title="Delete"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(todo.id);
+              Swal.fire({
+                title: 'Delete Task?',
+                text: `Are you sure you want to delete "${todo.title}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  onDelete(todo.id);
+                }
+              });
             }}
           >
             🗑️ Delete
